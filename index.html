@@ -47,6 +47,12 @@ button {
     color: #000;
     font-weight: bold;
     font-size: 16px;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .result {
@@ -57,6 +63,34 @@ button {
 .status {
     margin-top: 10px;
     font-weight: bold;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+/* кольори статусів */
+.green { background: #1f7a1f; }
+.yellow { background: #8a6d00; }
+.red { background: #8b1e1e; }
+.gray { background: #444; }
+
+/* loader */
+.loader {
+    margin: 20px auto;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #333;
+    border-top: 4px solid #d4af37;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.hidden {
+    display: none;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 </style>
 </head>
@@ -72,17 +106,17 @@ button {
 <form onsubmit="check(); return false;">
     <input id="id" placeholder="Введіть ID заявки">
     <br>
-    <button type="submit">Перевірити</button>
+    <button id="btn" type="submit">Перевірити</button>
 </form>
 
+<div id="loader" class="loader hidden"></div>
 <div class="result" id="result"></div>
 
 </div>
 
 <script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbyN8r_nDF-b9U8ljwFiWkYcZlxwwY2kH7ojPtlzV5YQnza_zkybzOvNIbHYCvxVFs7iHQ/exec"; // встав сюди Apps Script URL
+const scriptURL = "https://script.google.com/macros/s/AKfycbyN8r_nDF-b9U8ljwFiWkYcZlxwwY2kH7ojPtlzV5YQnza_zkybzOvNIbHYCvxVFs7iHQ/exec";
 
-// автофокус
 window.onload = () => {
     document.getElementById("id").focus();
 };
@@ -91,29 +125,61 @@ function normalize(input) {
     return input.trim().toLowerCase();
 }
 
+// визначення кольору статусу
+function getStatusClass(status) {
+    const s = status.toLowerCase();
+
+    if (s.includes("викон") || s.includes("done") || s.includes("complete")) {
+        return "green";
+    }
+    if (s.includes("робот") || s.includes("pending") || s.includes("process")) {
+        return "yellow";
+    }
+    if (s.includes("відм") || s.includes("скас") || s.includes("reject")) {
+        return "red";
+    }
+    return "gray";
+}
+
 function check() {
-    const raw = document.getElementById("id").value;
-    const id = normalize(raw);
+    const input = document.getElementById("id");
+    const btn = document.getElementById("btn");
+    const loader = document.getElementById("loader");
+    const result = document.getElementById("result");
+
+    const id = normalize(input.value);
 
     if (!id) return;
+
+    result.innerHTML = "";
+    loader.classList.remove("hidden");
+    btn.disabled = true;
 
     fetch(`${scriptURL}?id=${id}`)
         .then(res => res.json())
         .then(data => {
+            loader.classList.add("hidden");
+            btn.disabled = false;
+
             if (data.status === "not_found") {
                 result.innerHTML = "<p>❌ Не знайдено</p>";
                 return;
             }
 
+            const statusText = data.data.statusText || "Немає статусу";
+            const statusClass = getStatusClass(statusText);
+
             result.innerHTML = `
-                <p>ID: ${data.data.id}</p>
-                <p>Підрозділ: ${data.data.unit}</p>
-                <p>Позиція: ${data.data.position}</p>
-                <p>Що веземо: ${data.data.cargo}</p>
-                <p class="status">Статус: ${data.data.statusText}</p>
+                <p><b>ID:</b> ${data.data.id.slice(-3)}</p>
+                <p><b>Підрозділ:</b> ${data.data.unit}</p>
+                <p><b>Позиція:</b> ${data.data.position}</p>
+                <p><b>Що веземо:</b> ${data.data.cargo}</p>
+                <p class="status ${statusClass}"><b>Статус:</b> ${statusText}</p>
             `;
         })
         .catch(() => {
+            loader.classList.add("hidden");
+            btn.disabled = false;
             result.innerHTML = "<p>⚠️ Помилка запиту</p>";
         });
 }
