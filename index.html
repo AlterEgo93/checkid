@@ -7,52 +7,101 @@
 
 <style>
 body {
-    font-family: Arial;
+    margin: 0;
+    font-family: Arial, sans-serif;
     background: #0f0f0f;
     color: #fff;
-    text-align: center;
+}
+
+.header {
+    padding: 15px;
+    background: #1a1a1a;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.container {
     padding: 20px;
+    text-align: center;
 }
 
 input {
+    width: 80%;
+    max-width: 250px;
     padding: 12px;
-    width: 200px;
-    margin: 10px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 16px;
 }
 
 button {
+    margin-top: 10px;
+    width: 80%;
+    max-width: 250px;
     padding: 12px;
-    background: #d4af37;
+    border-radius: 8px;
     border: none;
+    background: #d4af37;
+    color: #000;
+    font-weight: bold;
+    font-size: 16px;
 }
 
 .result {
     margin-top: 20px;
+    text-align: left;
+}
+
+.status {
+    margin-top: 10px;
+    font-weight: bold;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Перевірка статусу</h2>
+<div class="header">
+    Перевірка статусу
+</div>
 
-<input id="id" placeholder="Введіть ID (e86)">
-<br>
-<button onclick="check()">Перевірити</button>
+<div class="container">
+
+<form onsubmit="check(); return false;">
+    <input id="id" placeholder="Введіть ID заявки">
+    <br>
+    <button type="submit">Перевірити</button>
+</form>
 
 <div class="result" id="result"></div>
 
+</div>
+
 <script>
-const scriptURL = "https://script.google.com/macros/s/AKfycbyN8r_nDF-b9U8ljwFiWkYcZlxwwY2kH7ojPtlzV5YQnza_zkybzOvNIbHYCvxVFs7iHQ/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbyN8r_nDF-b9U8ljwFiWkYcZlxwwY2kH7ojPtlzV5YQnza_zkybzOvNIbHYCvxVFs7iHQ/exec"; // встав сюди Apps Script URL
+
+// автофокус
+window.onload = () => {
+    document.getElementById("id").focus();
+};
+
+function normalize(input) {
+    return input.trim().toLowerCase();
+}
 
 function check() {
-    const id = document.getElementById("id").value.trim();
+    const raw = document.getElementById("id").value;
+    const id = normalize(raw);
+
+    if (!id) return;
 
     fetch(`${scriptURL}?id=${id}`)
         .then(res => res.json())
         .then(data => {
             if (data.status === "not_found") {
-                result.innerHTML = "Не знайдено";
+                result.innerHTML = "<p>❌ Не знайдено</p>";
                 return;
             }
 
@@ -61,8 +110,11 @@ function check() {
                 <p>Підрозділ: ${data.data.unit}</p>
                 <p>Позиція: ${data.data.position}</p>
                 <p>Що веземо: ${data.data.cargo}</p>
-                <p><b>Статус: ${data.data.statusText}</b></p>
+                <p class="status">Статус: ${data.data.statusText}</p>
             `;
+        })
+        .catch(() => {
+            result.innerHTML = "<p>⚠️ Помилка запиту</p>";
         });
 }
 </script>
